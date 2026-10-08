@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEM χ² df Calculator (aka Jen Jr. ... don't ask, just don't)</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --border:#e3e1da; --border-strong:#c9c6bb;
+  --text:#1c1b19; --text-secondary:#5b594f; --text-muted:#8a8779;
+  --accent:#378ADD; --accent-bg:#E6F1FB; --accent-text:#0C447C;
+  --danger:#D85A30; --danger-bg:#FAECE7; --danger-text:#712B13;
+  --success:#3B6D11; --success-bg:#EAF3DE; --success-text:#27500A;
+  --radius:10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171614; --card:#211f1c; --border:#38362f; --border-strong:#4c4a41;
+    --text:#f0efe9; --text-secondary:#b9b6a9; --text-muted:#8a8779;
+    --accent:#85B7EB; --accent-bg:#0C447C; --accent-text:#E6F1FB;
+    --danger:#F0997B; --danger-bg:#4A1B0C; --danger-text:#FAECE7;
+    --success:#97C459; --success-bg:#173404; --success-text:#EAF3DE;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171614; --card:#211f1c; --border:#38362f; --border-strong:#4c4a41;
+  --text:#f0efe9; --text-secondary:#b9b6a9; --text-muted:#8a8779;
+  --accent:#85B7EB; --accent-bg:#0C447C; --accent-text:#E6F1FB;
+  --danger:#F0997B; --danger-bg:#4A1B0C; --danger-text:#FAECE7;
+  --success:#97C459; --success-bg:#173404; --success-text:#EAF3DE;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg); color:var(--text); margin:0; padding:0;}
+.wrap{max-width:640px; margin:0 auto; padding:24px 20px 48px;}
+h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+.sub{color:var(--text-secondary); font-size:14px; margin:0 0 24px; line-height:1.5;}
+.card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px;}
+.card h2{font-size:14px; font-weight:600; margin:0 0 12px; display:flex; align-items:center; gap:8px;}
+.badge{font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; background:var(--accent-bg); color:var(--accent-text);}
+.row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row label{font-size:13.5px; color:var(--text); flex:1; line-height:1.4;}
+.row .hint{display:block; font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+input[type=number]{
+  width:76px; padding:6px 8px; border:1px solid var(--border-strong); border-radius:7px;
+  background:var(--bg); color:var(--text); font-size:14px; text-align:right;
+}
+input[type=number]:focus{outline:2px solid var(--accent); outline-offset:1px;}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; padding:4px 0 14px;}
+.toggle-row label{font-size:13.5px;}
+.switch{position:relative; width:40px; height:22px; flex-shrink:0;}
+.switch input{opacity:0; width:0; height:0;}
+.slider{position:absolute; cursor:pointer; inset:0; background:var(--border-strong); border-radius:22px; transition:.15s;}
+.slider:before{position:absolute; content:""; height:16px; width:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s;}
+input:checked + .slider{background:var(--accent);}
+input:checked + .slider:before{transform:translateX(18px);}
+.total-row{display:flex; justify-content:space-between; align-items:baseline; padding-top:10px; margin-top:4px; border-top:1px solid var(--border-strong);}
+.total-row .label{font-size:13px; color:var(--text-secondary);}
+.total-row .value{font-size:16px; font-weight:600;}
+.result-card{background:var(--card); border:1px solid var(--border-strong); border-radius:var(--radius); padding:20px; text-align:center;}
+.df-value{font-size:40px; font-weight:700; margin:2px 0 6px; letter-spacing:-1px;}
+.df-formula{font-size:12.5px; color:var(--text-muted); margin-bottom:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;}
+.status-pill{display:inline-block; font-size:12.5px; font-weight:600; padding:4px 12px; border-radius:20px;}
+.status-good{background:var(--success-bg); color:var(--success-text);}
+.status-bad{background:var(--danger-bg); color:var(--danger-text);}
+.status-neutral{background:var(--accent-bg); color:var(--accent-text);}
+.breakdown{margin-top:14px; padding-top:14px; border-top:1px solid var(--border); text-align:left; font-size:12.5px; color:var(--text-secondary); display:grid; grid-template-columns:1fr auto; row-gap:4px;}
+.breakdown .val{text-align:right; color:var(--text); font-variant-numeric:tabular-nums;}
+footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1.6;}
+.preset-btn{font-size:12.5px; padding:6px 12px; border-radius:20px; border:1px solid var(--border-strong); background:var(--bg); color:var(--text); cursor:pointer;}
+.preset-btn:hover{border-color:var(--accent);}
+.preset-btn.active{background:var(--accent-bg); color:var(--accent-text); border-color:var(--accent);}
+.eq-wrap{display:none; align-items:center; gap:5px; margin-left:10px; flex-shrink:0;}
+.eq-wrap label{font-size:11px; color:var(--text-secondary); flex:none; white-space:nowrap;}
+.eq-wrap input[type=checkbox]{width:14px; height:14px; margin:0;}
+.param-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.level-title{font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.03em; margin:14px 0 4px;}
+.level-block:first-child .level-title{margin-top:0;}
+.diagram-wrap{margin-bottom:22px;}
+.diagram-wrap:last-child{margin-bottom:0;}
+.diagram-label{font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.03em; margin:0 0 6px;}
+.diagram-svg{width:100%; height:auto; display:block;}
+.diagram-legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:8px; font-size:11.5px; color:var(--text-secondary);}
+.diagram-legend span{display:inline-flex; align-items:center; gap:5px;}
+.legend-swatch{display:inline-block; width:16px; height:0; border-top-width:2px; border-top-style:solid;}
+.diagram-note{font-size:11.5px; color:var(--text-muted); margin-top:6px;}
+.diagram-groups{display:flex; gap:16px; flex-wrap:wrap;}
+.diagram-group-col{flex:1; min-width:280px;}
+.diagram-group-label{font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px;}
+#rtTable th, #rtTable td{padding:6px 8px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; font-variant-numeric:tabular-nums;}
+#rtTable th{font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); font-weight:600; text-align:right; border-bottom:1px solid var(--border-strong);}
+#rtTable th:first-child, #rtTable td:first-child{text-align:left; white-space:normal; min-width:140px;}
+#rtTable td.rt-df{font-weight:600; color:var(--text);}
+#rtTable td.rt-rm{text-align:center;}
+#rtTable td.rt-rm button{font-size:11px; padding:3px 7px; border-radius:6px; border:1px solid var(--border-strong); background:var(--bg); color:var(--text-muted); cursor:pointer;}
+#rtTable td.rt-rm button:hover{border-color:var(--danger); color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SEM χ² df calculator (aka Jen Jr. ... don't ask, just don't)</h1>
+  <p class="sub">Degrees of freedom for the model chi-square (χ²) fit statistic in structural equation modeling: the number of non-redundant data points minus the number of freely estimated parameters.</p>
+
+  <div class="card">
+    <h2>Model type</h2>
+    <div class="row" style="border-bottom:none; padding-bottom:0;">
+      <label for="modelType" style="flex:none;">Structure</label>
+      <select id="modelType" style="width:auto; padding:6px 8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); font-size:13.5px;">
+        <option value="sem">Latent variable model (SEM)</option>
+        <option value="path">Path analysis (observed variables only)</option>
+      </select>
+    </div>
+    <div class="hint" id="modelTypeHint" style="padding:6px 0 2px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Model size</h2>
+    <div class="row">
+      <label>Number of groups<span class="hint">k = 1 for a single-group model, 2+ for multi-group / measurement invariance</span></label>
+      <input type="number" id="k" min="1" value="1">
+    </div>
+    <div class="row">
+      <label>Number of levels<span class="hint">1 for standard single-level SEM/path analysis; 2 or 3 for multilevel (e.g. within/between)</span></label>
+      <select id="levels" style="width:auto; padding:6px 8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); font-size:13.5px;">
+        <option value="1">1 (single-level)</option>
+        <option value="2">2 (e.g. within / between)</option>
+        <option value="3">3 (e.g. within / between / between2)</option>
+      </select>
+    </div>
+    <div class="hint" id="levelsHint" style="padding:2px 0 0;"></div>
+    <div class="toggle-row">
+      <label for="means">Model a mean structure<span class="hint" style="display:block;">Adds observed means as data points (needed for missing data / multi-group models with intercepts)</span></label>
+      <label class="switch"><input type="checkbox" id="means"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card" id="invarianceCard" style="display:none;">
+    <h2>Invariance level<span class="hint" style="font-weight:400;"></span></h2>
+    <p class="hint" style="margin:0 0 10px;">Presets set which parameters are held equal across groups (uncheck any row's "Equal across groups" box to customize). Each level assumes the one before it also holds.</p>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <button type="button" class="preset-btn" data-preset="configural">Configural</button>
+      <button type="button" class="preset-btn" data-preset="metric">Metric (weak)</button>
+      <button type="button" class="preset-btn" data-preset="scalar">Scalar (strong)</button>
+      <button type="button" class="preset-btn" data-preset="strict">Strict</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Freely estimated parameters <span class="badge" id="qBadge">0</span></h2>
+    <p class="hint" style="margin:0 0 12px;">Note: different SEM software packages estimate different parameters by default. For example, some use reference indicators by default, some, for no good reason, estimate residual covariances by default, etc.</p>
+
+    <div id="levelBlocksContainer">
+    <div class="level-block" data-level="1" id="levelBlock1">
+    <div class="level-title" id="levelTitle1"></div>
+    <div class="row">
+      <label>Observed indicators<span class="hint">p at this level — items, scale scores, etc.</span></label>
+      <input type="number" id="p" min="1" value="6" style="width:60px;">
+    </div>
+    <div class="row" id="numFactorsRow">
+      <label>Number of latent factors<span class="hint">m at this level</span></label>
+      <input type="number" id="numFactors" min="1" value="2" style="width:60px;">
+    </div>
+    <div class="latent-only">
+    <div class="row">
+      <label>Factor loadings<span class="hint">Free loadings only — not markers fixed to 1</span></label>
+      <div class="param-row"><input type="number" id="loadings" min="0" value="4">
+        <span class="eq-wrap"><input type="checkbox" id="eq_loadings"><label for="eq_loadings">Equal across groups</label></span></div>
+    </div>
+    <div class="row">
+      <label>Factor variances</label>
+      <div class="param-row"><input type="number" id="factvar" min="0" value="2">
+        <span class="eq-wrap"><input type="checkbox" id="eq_factvar"><label for="eq_factvar">Equal across groups</label></span></div>
+    </div>
+    <div class="row">
+      <label>Factor covariances</label>
+      <div class="param-row"><input type="number" id="factcov" min="0" value="1">
+        <span class="eq-wrap"><input type="checkbox" id="eq_factcov"><label for="eq_factcov">Equal across groups</label></span></div>
+    </div>
+    </div>
+    <div class="row" id="errvarRow">
+      <label id="errvarLabel">Error variances<span class="hint">Usually one per observed variable</span></label>
+      <div class="param-row"><input type="number" id="errvar" min="0" value="6">
+        <span class="eq-wrap"><input type="checkbox" id="eq_errvar"><label for="eq_errvar">Equal across groups</label></span></div>
+    </div>
+    <div class="row">
+      <label>Error covariances<span class="hint">Correlated uniquenesses, which should only be used for the same variable measured at multiple times</span></label>
+      <div class="param-row"><input type="number" id="errcov" min="0" value="0">
+        <span class="eq-wrap"><input type="checkbox" id="eq_errcov"><label for="eq_errcov">Equal across groups</label></span></div>
+    </div>
+    <div class="row">
+      <label>Structural paths<span class="hint">Regressions among latent/observed variables</span></label>
+      <div class="param-row"><input type="number" id="paths" min="0" value="0">
+        <span class="eq-wrap"><input type="checkbox" id="eq_paths"><label for="eq_paths">Equal across groups</label></span></div>
+    </div>
+    <div class="row">
+      <label>Other free parameters<span class="hint">Anything not covered above, at this level</span></label>
+      <div class="param-row"><input type="number" id="other" min="0" value="0">
+        <span class="eq-wrap"><input type="checkbox" id="eq_other"><label for="eq_other">Equal across groups</label></span></div>
+    </div>
+    </div>
+    </div>
+
+    <div class="row" id="meanRow" style="display:none;">
+      <label id="meansLabel">Intercepts / means<span class="hint">Grand means — modeled once, at the highest level</span></label>
+      <div class="param-row"><input type="number" id="means_est" min="0" value="0">
+        <span class="eq-wrap"><input type="checkbox" id="eq_means_est"><label for="eq_means_est">Equal across groups</label></span></div>
+    </div>
+
+    <div class="total-row">
+      <span class="label">Total freely estimated (q)</span>
+      <span class="value" id="qTotal">0</span>
+    </div>
+  </div>
+
+  <div class="card" id="diagramCard">
+    <h2>Path diagram</h2>
+    <p class="hint" style="margin:0 0 12px;">Shows every freely estimated parameter with a matching count. Since the calculator tracks totals rather than a specific model syntax, the exact factor–indicator layout below is one illustrative assignment (indicators split evenly across factors) — only the counts are guaranteed to match your inputs.</p>
+    <div id="diagramsContainer"></div>
+  </div>
+
+  <div class="result-card">
+    <div class="status-pill status-neutral" id="statusPill">Result</div>
+    <div class="df-value" id="dfValue">0</div>
+    <div class="df-formula" id="dfFormula">df = knowns − q</div>
+    <div class="breakdown">
+      <div>Groups (k)</div><div class="val" id="kOut">1</div>
+      <div>Known data points</div><div class="val" id="knownsOut">0</div>
+      <div>Freely estimated parameters (q)</div><div class="val" id="qOut">0</div>
+    </div>
+  </div>
+
+  <div class="card" id="reportCard">
+    <h2>Reporting table</h2>
+    <p class="hint" style="margin:0 0 12px;">Builds a knowns/unknowns accountability table in the style of Table 12 in Cortina et al. (2017) and Table 2 in Nielsen &amp; Cortina (2025) — one row per model, with every known and unknown category itemized next to the resulting df. Useful for reporting a full SEM, or a configural/metric/scalar invariance sequence, in a paper or appendix.</p>
+    <div class="row" style="border-bottom:none; padding-bottom:0; gap:10px;">
+      <label for="rtName" style="flex:none;">Model label</label>
+      <input type="text" id="rtName" placeholder="e.g., Configural invariance" style="flex:1; min-width:0; width:auto; text-align:left; padding:6px 8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); font-size:13.5px;">
+      <button type="button" id="rtAdd" class="preset-btn" style="flex:none;">Add current model as row</button>
+    </div>
+    <div class="tablewrap" id="rtTableWrap" style="display:none; margin-top:14px; overflow-x:auto;">
+      <table id="rtTable" style="width:100%; border-collapse:collapse; font-size:12px;"></table>
+    </div>
+    <div class="row" id="rtActions" style="display:none; border-bottom:none; padding-top:12px; gap:10px;">
+      <button type="button" id="rtDownload" class="preset-btn">Download CSV</button>
+      <button type="button" id="rtShowText" class="preset-btn">Show CSV text</button>
+      <button type="button" id="rtClear" class="preset-btn">Clear table</button>
+      <span class="hint" id="rtCount" style="flex:none;"></span>
+    </div>
+    <p class="hint" id="rtDownloadHelp" style="margin:6px 0 0;">Try "Download CSV" first. If clicking it does nothing — common on some embedded websites that block file downloads — click "Show CSV text" instead, then select all the text in the box (Ctrl/Cmd+A) and copy it (Ctrl/Cmd+C) to paste into a spreadsheet or a new .csv file.</p>
+    <div id="rtTextWrap" style="display:none; margin-top:12px;">
+      <p class="hint" style="margin:0 0 6px;">Click inside the box below, select all (Ctrl/Cmd+A), and copy (Ctrl/Cmd+C). Open a blank spreadsheet and paste into cell A1 — that should split the text into columns and rows automatically. If it just pastes everything into that one cell instead, select column A, then use Data &rarr; Text to Columns &rarr; Delimited &rarr; Comma to split it. (Or paste into a plain text editor and save the file with a .csv extension.)</p>
+      <textarea id="rtTextArea" readonly style="width:100%; min-height:120px; font-family:ui-monospace,Consolas,monospace; font-size:12px; padding:8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); resize:vertical;"></textarea>
+    </div>
+    <p class="hint" id="rtEmptyNote" style="margin:12px 0 0;">No rows yet — set up a model above, give it a label (e.g. "Configural invariance"), and add it as a row. Rows stay only in this browser session; download the CSV before you close the page.</p>
+  </div>
+
+  <footer>
+    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are modeled only once, using the highest level's indicator count. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const categoryIds = ['loadings','factvar','factcov','errvar','errcov','paths','other'];
+let lastSnapshot = null;
+let reportRows = [];
+let rtCounter = 0;
+const presets = {
+  configural: [],
+  metric: ['loadings'],
+  scalar: ['loadings','means_est'],
+  strict: ['loadings','means_est','errvar']
+};
+
+function buildLevelBlocks(){
+  const container = $('levelBlocksContainer');
+  const template = $('levelBlock1').outerHTML;
+  [2,3].forEach(n => {
+    if ($('levelBlock' + n)) return;
+    let html = template
+      .replace(/data-level="1"/, `data-level="${n}"`)
+      .replace(/id="levelBlock1"/, `id="levelBlock${n}"`)
+      .replace(/id="levelTitle1"/, `id="levelTitle${n}"`)
+      .replace(/id="numFactorsRow"/, `id="numFactorsRow_${n}"`)
+      .replace(/id="numFactors"/, `id="numFactors_${n}"`)
+      .replace(/id="p"/, `id="p_${n}"`)
+      .replace(/id="errvarRow"/, `id="errvarRow_${n}"`)
+      .replace(/id="errvarLabel"/, `id="errvarLabel_${n}"`);
+    categoryIds.forEach(cid => {
+      html = html.replaceAll(`id="${cid}"`, `id="${cid}_${n}"`);
+      html = html.replaceAll(`id="eq_${cid}"`, `id="eq_${cid}_${n}"`);
+      html = html.replaceAll(`for="eq_${cid}"`, `for="eq_${cid}_${n}"`);
+    });
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    container.appendChild(wrap.firstElementChild);
+  });
+}
+buildLevelBlocks();
+
+function levelName(i, total){
+  if (total === 1) return '';
+  if (i === 1) return 'Level 1 — within (lowest)';
+  if (i === total) return `Level ${i} — between (highest)`;
+  return `Level ${i} — between`;
+}
+
+function applyPreset(name){
+  const levels = Math.max(1, Math.round(Number($('levels').value) || 1));
+  for (let n = 1; n <= levels; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    categoryIds.forEach(id => {
+      const el = $('eq_' + id + suffix);
+      if (el) el.checked = presets[name].includes(id);
+    });
+  }
+  const meansEl = $('eq_means_est');
+  if (meansEl) meansEl.checked = presets[name].includes('means_est');
+  if (name === 'scalar' || name === 'strict') $('means').checked = true;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+  calc();
+}
+
+function calc(){
+  const k = Math.max(1, Math.round(Number($('k').value) || 1));
+  const levels = Math.max(1, Math.round(Number($('levels').value) || 1));
+  const meansOn = $('means').checked;
+  const isPath = $('modelType').value === 'path';
+  const multiGroup = k > 1;
+  const multiLevel = levels > 1;
+
+  $('meanRow').style.display = meansOn ? 'flex' : 'none';
+  $('meansLabel').innerHTML = multiLevel
+    ? `Intercepts / means<span class="hint">Grand means — modeled once, using the highest level's indicator count (level ${levels})</span>`
+    : 'Intercepts / means<span class="hint">Only counted if mean structure is on</span>';
+  $('invarianceCard').style.display = multiGroup ? 'block' : 'none';
+
+  for (let n = 2; n <= 3; n++){
+    $('levelBlock' + n).style.display = (n <= levels) ? 'block' : 'none';
+  }
+  for (let n = 1; n <= levels; n++){
+    $('levelTitle' + n).textContent = levelName(n, levels);
+  }
+
+  document.querySelectorAll('.latent-only').forEach(el => {
+    el.style.display = isPath ? 'none' : 'block';
+  });
+  for (let n = 1; n <= 3; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    const nfr = $('numFactorsRow' + suffix);
+    if (nfr) nfr.style.display = isPath ? 'none' : 'flex';
+  }
+  for (let n = 1; n <= 3; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    const lbl = $('errvarLabel' + suffix);
+    if (lbl) lbl.innerHTML = isPath
+      ? 'Error variances<span class="hint">One per endogenous (dependent) variable — exogenous variances aren\'t model parameters here</span>'
+      : 'Error variances<span class="hint">Usually one per observed variable</span>';
+  }
+  $('modelTypeHint').textContent = isPath
+    ? 'Exogenous variable variances and covariances are treated as always-saturated and excluded from the knowns, so only covariances (not variances) count as data points.'
+    : 'Includes latent factors — loadings, factor (co)variances, and observed errors all count.';
+  $('levelsHint').textContent = multiLevel
+    ? 'Each level has its own indicator count, factor count, and free parameters below — levels need not match in size or structure. Grand means are entered once, for the highest level only.'
+    : '';
+
+  document.querySelectorAll('.eq-wrap').forEach(el => {
+    el.style.display = multiGroup ? 'inline-flex' : 'none';
+  });
+
+  const levelP = [];
+  for (let n = 1; n <= levels; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    levelP.push(Math.max(0, Math.round(Number($('p' + suffix).value) || 0)));
+  }
+  const topP = levelP[levels - 1];
+
+  const activeCats = isPath ? categoryIds.filter(id => !['loadings','factvar','factcov'].includes(id)) : categoryIds;
+  let q = 0;
+  const catTotals = {};
+  categoryIds.forEach(id => { catTotals[id] = 0; });
+  for (let n = 1; n <= levels; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    activeCats.forEach(id => {
+      const val = Math.max(0, Math.round(Number($(id + suffix).value) || 0));
+      const heldEqual = multiGroup && $('eq_' + id + suffix).checked;
+      const contrib = heldEqual ? val : val * k;
+      q += contrib;
+      catTotals[id] += contrib;
+    });
+  }
+  let meansTotal = 0;
+  if (meansOn){
+    const val = Math.max(0, Math.round(Number($('means_est').value) || 0));
+    const heldEqual = multiGroup && $('eq_means_est').checked;
+    meansTotal = heldEqual ? val : val * k;
+    q += meansTotal;
+  }
+
+  let covKnowns = 0;
+  levelP.forEach(pl => { covKnowns += isPath ? (pl*(pl-1)/2) : (pl*(pl+1)/2); });
+  const perGroupKnowns = meansOn ? (covKnowns + topP) : covKnowns;
+  const knowns = perGroupKnowns * k;
+  const df = knowns - q;
+
+  $('qBadge').textContent = q;
+  $('qTotal').textContent = q;
+  $('qOut').textContent = q;
+  $('kOut').textContent = k;
+  $('knownsOut').textContent = knowns;
+  $('dfValue').textContent = df;
+
+  const baseFn = pl => isPath ? `${pl}(${pl}−1)/2` : `${pl}(${pl}+1)/2`;
+  const covNum = levelP.map(baseFn).join(' + ');
+  const perGroupNum = meansOn ? `[${covNum} + ${topP}]` : (multiLevel ? `[${covNum}]` : covNum);
+  $('dfFormula').textContent = multiGroup
+    ? `df = k·${perGroupNum} − q = ${k}·(${perGroupKnowns}) − ${q}`
+    : `df = ${perGroupNum} − q = ${perGroupKnowns} − ${q}`;
+
+  const pill = $('statusPill');
+  if (df > 0){
+    pill.textContent = 'Overidentified — df > 0 (testable model)';
+    pill.className = 'status-pill status-good';
+  } else if (df === 0){
+    pill.textContent = 'Just-identified — df = 0 (saturated model)';
+    pill.className = 'status-pill status-neutral';
+  } else {
+    pill.textContent = 'Underidentified — df < 0 (not identified)';
+    pill.className = 'status-pill status-bad';
+  }
+
+  renderDiagrams({levels, isPath});
+
+  lastSnapshot = {
+    isPath, k, levels, pList: levelP.slice(), meansOn,
+    loadings: catTotals.loadings, factvar: catTotals.factvar, factcov: catTotals.factcov,
+    errvar: catTotals.errvar, errcov: catTotals.errcov, paths: catTotals.paths, other: catTotals.other,
+    means: meansTotal, knowns, q, df
+  };
+}
+
+function renderDiagrams(ctx){
+  const container = $('diagramsContainer');
+  container.innerHTML = '';
+  const k = Math.max(1, Math.round(Number($('k').value) || 1));
+  const multiGroup = k > 1;
+  const meansOn = $('means').checked;
+
+  for (let n = 1; n <= ctx.levels; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    const pLevel = Math.max(1, Math.round(Number($('p' + suffix).value) || 1));
+    const mLevel = Math.max(1, Math.round(Number($('numFactors' + suffix).value) || 1));
+    const vals = {};
+    categoryIds.forEach(id => { vals[id] = Math.max(0, Math.round(Number($(id + suffix).value) || 0)); });
+    if (ctx.isPath){ vals.loadings = 0; vals.factvar = 0; vals.factcov = 0; }
+
+    const eqFlags = {};
+    categoryIds.forEach(id => { const el = $('eq_' + id + suffix); eqFlags[id] = !!(el && el.checked); });
+
+    const isTop = (n === ctx.levels);
+    const intercepts = (isTop && meansOn) ? { count: Math.max(0, Math.round(Number($('means_est').value) || 0)), equal: !!($('eq_means_est') && $('eq_means_est').checked) } : null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'diagram-wrap';
+    if (ctx.levels > 1){
+      const lbl = document.createElement('div');
+      lbl.className = 'diagram-label';
+      lbl.textContent = levelName(n, ctx.levels);
+      wrap.appendChild(lbl);
+    }
+
+    if (multiGroup){
+      const groupsToShow = Math.min(k, 2);
+      const row = document.createElement('div');
+      row.className = 'diagram-groups';
+      for (let g = 1; g <= groupsToShow; g++){
+        const col = document.createElement('div');
+        col.className = 'diagram-group-col';
+        const glbl = document.createElement('div');
+        glbl.className = 'diagram-group-label';
+        glbl.textContent = `Group ${g}`;
+        col.appendChild(glbl);
+        const host = document.createElement('div');
+        host.innerHTML = buildDiagramSVG(pLevel, mLevel, ctx.isPath, vals, { eqFlags, multiGroup, intercepts });
+        col.appendChild(host);
+        row.appendChild(col);
+      }
+      wrap.appendChild(row);
+      if (k > groupsToShow){
+        const note = document.createElement('div');
+        note.className = 'diagram-note';
+        note.textContent = `Shown for 2 of ${k} groups — remaining groups follow the same constraint pattern.`;
+        wrap.appendChild(note);
+      }
+    } else {
+      const svgHost = document.createElement('div');
+      svgHost.innerHTML = buildDiagramSVG(pLevel, mLevel, ctx.isPath, vals, { eqFlags, multiGroup, intercepts });
+      wrap.appendChild(svgHost);
+    }
+
+    const legend = document.createElement('div');
+    legend.className = 'diagram-legend';
+    let legendHTML = ctx.isPath
+      ? '<span><i class="legend-swatch" style="border-color:#378ADD;"></i>structural path</span>'
+        + '<span><i class="legend-swatch" style="border-color:#7F77DD; border-top-style:dashed;"></i>error covariance</span>'
+        + '<span><i class="legend-swatch" style="border-color:#1D9E75;"></i>error variance</span>'
+      : '<span><i class="legend-swatch" style="border-color:#378ADD;"></i>loading (free)</span>'
+        + '<span><i class="legend-swatch" style="border-color:#8a8779; border-top-style:dashed;"></i>loading (fixed = 1)</span>'
+        + '<span><i class="legend-swatch" style="border-color:#D85A30;"></i>structural path</span>'
+        + '<span><i class="legend-swatch" style="border-color:#7F77DD;"></i>factor covariance</span>'
+        + '<span><i class="legend-swatch" style="border-color:#1D9E75;"></i>error variance / covariance</span>';
+    if (intercepts && intercepts.count > 0) legendHTML += '<span><i class="legend-swatch" style="border-color:#444441;"></i>intercept</span>';
+    if (multiGroup) legendHTML += '<span><i class="legend-swatch" style="border-color:#BA7517;"></i>held equal across groups (invariant)</span>';
+    legend.innerHTML = legendHTML;
+    wrap.appendChild(legend);
+    if (vals.other > 0){
+      const note = document.createElement('div');
+      note.className = 'diagram-note';
+      note.textContent = `+ ${vals.other} other free parameter${vals.other===1?'':'s'} not shown`;
+      wrap.appendChild(note);
+    }
+    container.appendChild(wrap);
+  }
+}
+
+function buildDiagramSVG(p, m, isPath, vals, opts){
+  opts = opts || {};
+  const eqFlags = opts.eqFlags || {};
+  const multiGroup = !!opts.multiGroup;
+  const intercepts = opts.intercepts;
+  const INV = '#BA7517';
+  const col = (cat, base) => (multiGroup && eqFlags[cat]) ? INV : base;
+
+  const colW = 68, padX = 50;
+  const width = Math.max(420, p * colW + padX * 2);
+  const hasIntercepts = intercepts && intercepts.count > 0;
+  const topY = 75, botY = isPath ? 130 : 235;
+  const baseHeight = isPath ? 190 : 320;
+  const extraH = hasIntercepts ? (isPath ? 60 : 75) : 0;
+  const height = baseHeight + extraH;
+  let defs = `<defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--text-secondary)"/></marker>
+    <marker id="arrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--text-secondary)"/></marker>
+  </defs>`;
+  let els = [];
+  const cap = 10;
+
+  const indX = i => padX + i * colW + colW/2;
+  const sqBottom = isPath ? botY + 18 : botY + 16;
+
+  if (hasIntercepts){
+    const busY = baseHeight + extraH - 22;
+    const iColor = (multiGroup && intercepts.equal) ? INV : '#444441';
+    const n = Math.min(intercepts.count, p);
+    const stemX = i => indX(i) - 14;
+    const lastX = n > 0 ? stemX(n-1) : 36;
+    els.push(`<path d="M18,${busY-9} L18,${busY+9} L36,${busY} Z" fill="var(--surface-1)" stroke="${iColor}" stroke-width="1.3"/>`);
+    els.push(`<text x="21" y="${busY+3}" text-anchor="middle" font-size="9" fill="${iColor}">1</text>`);
+    els.push(`<text x="18" y="${busY+22}" text-anchor="middle" font-size="10" fill="${iColor}">\u03BD</text>`);
+    if (n > 0){
+      els.push(`<line x1="36" y1="${busY}" x2="${lastX}" y2="${busY}" stroke="${iColor}" stroke-width="1.2" stroke-dasharray="2 2"/>`);
+      for (let i=0;i<n;i++){
+        const x = stemX(i);
+        els.push(`<line x1="${x}" y1="${busY}" x2="${x}" y2="${sqBottom+4}" stroke="${iColor}" stroke-width="1.3" marker-end="url(#arrow)"/>`);
+      }
+    }
+    if (intercepts.count > p) els.push(noteText(width, `+ ${intercepts.count-p} more intercepts`, 0));
+  }
+
+  if (isPath){
+    for (let i=0;i<p;i++){
+      const x = indX(i);
+      els.push(`<rect x="${x-24}" y="${botY-18}" width="48" height="36" rx="4" fill="var(--surface-1)" stroke="var(--border-stronger)" stroke-width="1.2"/>`);
+      els.push(`<text x="${x}" y="${botY+5}" text-anchor="middle" font-size="12" fill="var(--text-primary)">X${i+1}</text>`);
+    }
+    let n=0;
+    const pathPairs = [];
+    for (let i=0;i<p && n<vals.paths;i++){ for(let j=0;j<p && n<vals.paths;j++){ if(i!==j){ pathPairs.push([i,j]); n++; } } }
+    const pathColor = col('paths', '#378ADD');
+    pathPairs.slice(0,cap).forEach(([i,j],idx)=>{
+      const x1=indX(i), x2=indX(j);
+      const dip = (idx%2===0? -1:1) * (26 + (idx%3)*10);
+      const midx=(x1+x2)/2, midy=botY+dip;
+      els.push(`<path d="M${x1},${botY-18} Q${midx},${midy} ${x2},${botY-18}" fill="none" stroke="${pathColor}" stroke-width="1.6" marker-end="url(#arrow)"/>`);
+    });
+    if (vals.paths > cap) els.push(noteText(width, `+ ${vals.paths-cap} more structural paths`, 1));
+
+    const evColor = col('errvar', '#1D9E75');
+    let ev=0;
+    for (let i=0;i<p && ev<vals.errvar;i++,ev++){
+      const x=indX(i);
+      els.push(loopSVG(x, botY-18, evColor));
+    }
+    if (vals.errvar > p) els.push(noteText(width, `+ ${vals.errvar-p} more error variances`, 2));
+
+    const ecColor = col('errcov', '#7F77DD');
+    let ec=0; const covPairs=[];
+    for (let i=0;i<p && ec<vals.errcov;i++){ for(let j=i+1;j<p && ec<vals.errcov;j++){ covPairs.push([i,j]); ec++; } }
+    covPairs.slice(0,cap).forEach(([i,j],idx)=>{
+      const x1=indX(i), x2=indX(j);
+      const midx=(x1+x2)/2, midy=botY-70-((idx%3)*14);
+      els.push(`<path d="M${x1},${botY-18} Q${midx},${midy} ${x2},${botY-18}" fill="none" stroke="${ecColor}" stroke-width="1.4" stroke-dasharray="4 3" marker-start="url(#arrowB)" marker-end="url(#arrowB)"/>`);
+    });
+    if (vals.errcov > cap) els.push(noteText(width, `+ ${vals.errcov-cap} more error covariances`, 3));
+
+    return svgWrap(width, height, defs + els.join(''));
+  }
+
+  const groups = assignGroups(p, m);
+  const factX = groups.map(g => { const xs = g.map(i=>indX(i)); return xs.reduce((a,b)=>a+b,0)/xs.length; });
+
+  for (let i=0;i<m;i++){
+    els.push(`<circle cx="${factX[i]}" cy="${topY}" r="24" fill="var(--surface-1)" stroke="var(--border-stronger)" stroke-width="1.2"/>`);
+    els.push(`<text x="${factX[i]}" y="${topY+4}" text-anchor="middle" font-size="12" fill="var(--text-primary)">F${i+1}</text>`);
+  }
+  for (let i=0;i<p;i++){
+    const x = indX(i);
+    els.push(`<rect x="${x-22}" y="${botY-16}" width="44" height="32" rx="4" fill="var(--surface-1)" stroke="var(--border-stronger)" stroke-width="1.2"/>`);
+    els.push(`<text x="${x}" y="${botY+4}" text-anchor="middle" font-size="12" fill="var(--text-primary)">X${i+1}</text>`);
+  }
+
+  const loadColor = col('loadings', '#378ADD');
+  const freeSlots = [];
+  groups.forEach((g,fi) => {
+    g.forEach((ind,pos) => {
+      const x = indX(ind);
+      if (pos === 0){
+        els.push(`<line x1="${factX[fi]}" y1="${topY+24}" x2="${x}" y2="${botY-16}" stroke="#8a8779" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`);
+      } else {
+        freeSlots.push({fi, ind});
+      }
+    });
+  });
+  const drawn = Math.min(vals.loadings, freeSlots.length);
+  freeSlots.slice(0, drawn).forEach(({fi,ind}) => {
+    const x = indX(ind);
+    els.push(`<line x1="${factX[fi]}" y1="${topY+24}" x2="${x}" y2="${botY-16}" stroke="${loadColor}" stroke-width="1.6" marker-end="url(#arrow)"/>`);
+  });
+  let crossLeft = vals.loadings - freeSlots.length;
+  if (crossLeft > 0){
+    const crossColor = (multiGroup && eqFlags.loadings) ? INV : '#D85A30';
+    const capCross = Math.min(crossLeft, cap);
+    for (let e=0;e<capCross;e++){
+      const fi = e % m; const tGroup = groups[(fi+1)%m];
+      const ind = tGroup[e % tGroup.length];
+      const x = indX(ind);
+      els.push(`<line x1="${factX[fi]}" y1="${topY+24}" x2="${x}" y2="${botY-16}" stroke="${crossColor}" stroke-width="1.4" stroke-dasharray="2 3" marker-end="url(#arrow)"/>`);
+    }
+    if (crossLeft > cap) els.push(noteText(width, `+ ${crossLeft-cap} more cross-loadings`, 1));
+  }
+
+  const fvColor = col('factvar', '#534AB7');
+  for (let i=0;i<Math.min(vals.factvar, m); i++){
+    els.push(loopSVG(factX[i], topY-24, fvColor, true));
+  }
+  if (vals.factvar > m) els.push(noteText(width, `+ ${vals.factvar-m} more factor variances`, 2));
+
+  const fcColor = col('factcov', '#7F77DD');
+  let fc=0; const fPairs=[];
+  for (let i=0;i<m && fc<vals.factcov;i++){ for(let j=i+1;j<m && fc<vals.factcov;j++){ fPairs.push([i,j]); fc++; } }
+  fPairs.slice(0,cap).forEach(([i,j],idx)=>{
+    const x1=factX[i], x2=factX[j];
+    const midx=(x1+x2)/2, midy=topY-42-((idx%3)*10);
+    els.push(`<path d="M${x1},${topY-24} Q${midx},${midy} ${x2},${topY-24}" fill="none" stroke="${fcColor}" stroke-width="1.4" marker-start="url(#arrowB)" marker-end="url(#arrowB)"/>`);
+  });
+  if (vals.factcov > cap) els.push(noteText(width, `+ ${vals.factcov-cap} more factor covariances`, 3));
+
+  const spColor = col('paths', '#D85A30');
+  let sp=0; const sPairs=[];
+  for (let i=0;i<m && sp<vals.paths;i++){ for(let j=0;j<m && sp<vals.paths;j++){ if(i!==j){ sPairs.push([i,j]); sp++; } } }
+  sPairs.slice(0,cap).forEach(([i,j],idx)=>{
+    const x1=factX[i], x2=factX[j];
+    const dip = 32 + (idx%3)*14;
+    const midx=(x1+x2)/2, midy=topY+dip;
+    els.push(`<path d="M${x1},${topY+20} Q${midx},${midy} ${x2},${topY+20}" fill="none" stroke="${spColor}" stroke-width="1.6" marker-end="url(#arrow)"/>`);
+  });
+  if (vals.paths > cap) els.push(noteText(width, `+ ${vals.paths-cap} more structural paths`, 4));
+
+  const evColor2 = col('errvar', '#1D9E75');
+  for (let i=0;i<Math.min(vals.errvar, p); i++){
+    els.push(loopSVG(indX(i), botY+16, evColor2));
+  }
+  if (vals.errvar > p) els.push(noteText(width, `+ ${vals.errvar-p} more error variances`, 5));
+
+  const ecColor2 = col('errcov', '#1D9E75');
+  let ec2=0; const covPairs2=[];
+  for (let i=0;i<p && ec2<vals.errcov;i++){ for(let j=i+1;j<p && ec2<vals.errcov;j++){ covPairs2.push([i,j]); ec2++; } }
+  covPairs2.slice(0,cap).forEach(([i,j],idx)=>{
+    const x1=indX(i), x2=indX(j);
+    const midx=(x1+x2)/2, midy=botY+55+((idx%3)*12);
+    els.push(`<path d="M${x1},${botY+16} Q${midx},${midy} ${x2},${botY+16}" fill="none" stroke="${ecColor2}" stroke-width="1.4" stroke-dasharray="4 3" marker-start="url(#arrowB)" marker-end="url(#arrowB)"/>`);
+  });
+  if (vals.errcov > cap) els.push(noteText(width, `+ ${vals.errcov-cap} more error covariances`, 6));
+
+  return svgWrap(width, height, defs + els.join(''));
+}
+
+function loopSVG(x, y, color, up){
+  const dy = up ? -14 : 14;
+  return `<path d="M${x-10},${y} C${x-16},${y+dy} ${x+16},${y+dy} ${x+10},${y}" fill="none" stroke="${color}" stroke-width="1.4" marker-end="url(#arrowB)"/>`;
+}
+function noteText(width, text, row){
+  return `<text x="${width-8}" y="${14 + row*13}" text-anchor="end" font-size="10.5" fill="var(--text-muted)">${text}</text>`;
+}
+function svgWrap(width, height, inner){
+  return `<svg class="diagram-svg" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Path diagram">${inner}</svg>`;
+}
+function assignGroups(p, m){
+  const base = Math.floor(p/m), rem = p % m;
+  let idx = 0; const groups = [];
+  for (let i=0;i<m;i++){
+    const size = base + (i<rem?1:0) || 1;
+    const g = [];
+    for (let s=0;s<size && idx<p;s++) g.push(idx++);
+    groups.push(g.length ? g : [Math.min(idx,p-1)]);
+  }
+  while (idx < p){ groups[groups.length-1].push(idx++); }
+  return groups;
+}
+
+const RT_COLS = [
+  { key: 'name', label: 'Model' },
+  { key: 'k', label: 'k' },
+  { key: 'p', label: 'p' },
+  { key: 'loadings', label: 'Loadings' },
+  { key: 'factvar', label: 'Factor var.' },
+  { key: 'factcov', label: 'Factor cov.' },
+  { key: 'errvar', label: 'Error var.' },
+  { key: 'errcov', label: 'Error cov.' },
+  { key: 'paths', label: 'Paths' },
+  { key: 'means', label: 'Intercepts' },
+  { key: 'other', label: 'Other' },
+  { key: 'knowns', label: 'Knowns' },
+  { key: 'q', label: 'Unknowns (q)' },
+  { key: 'df', label: 'df' }
+];
+
+function addReportRow(){
+  if (!lastSnapshot) return;
+  rtCounter++;
+  const nameInput = $('rtName');
+  const name = nameInput.value.trim() || `Model ${rtCounter}`;
+  const s = lastSnapshot;
+  reportRows.push({
+    name,
+    k: s.k,
+    p: s.pList.join(s.pList.length > 1 ? ' + ' : ''),
+    loadings: s.loadings, factvar: s.factvar, factcov: s.factcov,
+    errvar: s.errvar, errcov: s.errcov, paths: s.paths,
+    means: s.means, other: s.other,
+    knowns: s.knowns, q: s.q, df: s.df
+  });
+  nameInput.value = '';
+  renderReportTable();
+}
+
+function removeReportRow(idx){
+  reportRows.splice(idx, 1);
+  renderReportTable();
+}
+
+function renderReportTable(){
+  const wrap = $('rtTableWrap'), actions = $('rtActions'), empty = $('rtEmptyNote'), table = $('rtTable'), count = $('rtCount');
+  const textWrap = $('rtTextWrap'), textArea = $('rtTextArea');
+  if (!reportRows.length){
+    wrap.style.display = 'none'; actions.style.display = 'none'; empty.style.display = 'block';
+    table.innerHTML = '';
+    textWrap.style.display = 'none'; textArea.value = '';
+    const showBtn = $('rtShowText'); if (showBtn) showBtn.textContent = 'Show CSV text';
+    return;
+  }
+  wrap.style.display = 'block'; actions.style.display = 'flex'; empty.style.display = 'none';
+  count.textContent = `${reportRows.length} row${reportRows.length === 1 ? '' : 's'}`;
+  const thead = '<thead><tr>' + RT_COLS.map(c => `<th>${esc(c.label)}</th>`).join('') + '<th></th></tr></thead>';
+  const tbody = '<tbody>' + reportRows.map((r, i) => {
+    const cells = RT_COLS.map(c => `<td${c.key === 'df' ? ' class="rt-df"' : ''}>${esc(String(r[c.key]))}</td>`).join('');
+    return `<tr>${cells}<td class="rt-rm"><button type="button" data-idx="${i}" aria-label="Remove row">✕</button></td></tr>`;
+  }).join('') + '</tbody>';
+  table.innerHTML = thead + tbody;
+  table.querySelectorAll('.rt-rm button').forEach(btn => {
+    btn.addEventListener('click', () => removeReportRow(Number(btn.dataset.idx)));
+  });
+  // Keep the manual-copy text box in sync if it's currently open.
+  if (textWrap.style.display !== 'none') textArea.value = toCSV();
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function toCSV(){
+  const header = RT_COLS.map(c => c.label);
+  const csvEsc = v => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [header.map(csvEsc).join(',')];
+  reportRows.forEach(r => {
+    lines.push(RT_COLS.map(c => csvEsc(r[c.key])).join(','));
+  });
+  return lines.join('\r\n');
+}
+
+async function downloadReportCSV(){
+  const csv = toCSV();
+  const btn = $('rtDownload');
+  try {
+    const downloads = (typeof claude !== 'undefined' && claude.use) ? await claude.use('downloads') : null;
+    if (downloads){
+      await downloads.save({ filename: 'sem-df-reporting-table.csv', data: csv });
+      return;
+    }
+  } catch (e) {
+    if (e && e.code === 'declined') return;
+  }
+  // Fallback: plain browser download (works when the downloads capability isn't available).
+  try {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sem-df-reporting-table.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e2) {
+    const prev = btn.textContent;
+    btn.textContent = 'Could not save — copy manually';
+    setTimeout(() => { btn.textContent = prev; }, 2500);
+  }
+}
+
+function toggleCSVText(){
+  const textWrap = $('rtTextWrap'), textArea = $('rtTextArea'), btn = $('rtShowText');
+  const show = textWrap.style.display === 'none';
+  if (show){
+    textArea.value = toCSV();
+    textWrap.style.display = 'block';
+    btn.textContent = 'Hide CSV text';
+    textArea.focus();
+    textArea.select();
+  } else {
+    textWrap.style.display = 'none';
+    btn.textContent = 'Show CSV text';
+  }
+}
+
+function wireReportTable(){
+  $('rtAdd').addEventListener('click', addReportRow);
+  $('rtDownload').addEventListener('click', downloadReportCSV);
+  $('rtShowText').addEventListener('click', toggleCSVText);
+  $('rtClear').addEventListener('click', () => { reportRows = []; renderReportTable(); });
+  $('rtName').addEventListener('keydown', e => { if (e.key === 'Enter') addReportRow(); });
+}
+
+function wireInputs(){
+  const base = ['k','levels','means','means_est','modelType'];
+  const perLevel = [];
+  for (let n = 1; n <= 3; n++){
+    const suffix = n === 1 ? '' : '_' + n;
+    perLevel.push('p' + suffix, 'numFactors' + suffix);
+    categoryIds.forEach(id => { perLevel.push(id + suffix); perLevel.push('eq_' + id + suffix); });
+  }
+  base.concat(['eq_means_est'], perLevel).forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('input', calc);
+    el.addEventListener('change', calc);
+  });
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+  });
+}
+wireInputs();
+wireReportTable();
+calc();
+renderReportTable();
+</script>
+</body>
+</html>
