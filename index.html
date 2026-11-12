@@ -11,6 +11,7 @@
   --accent:#378ADD; --accent-bg:#E6F1FB; --accent-text:#0C447C;
   --danger:#D85A30; --danger-bg:#FAECE7; --danger-text:#712B13;
   --success:#3B6D11; --success-bg:#EAF3DE; --success-text:#27500A;
+  --surface-1:#ffffff; --border-stronger:#8a8779; --text-primary:#1c1b19;
   --radius:10px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
@@ -21,6 +22,7 @@
     --accent:#85B7EB; --accent-bg:#0C447C; --accent-text:#E6F1FB;
     --danger:#F0997B; --danger-bg:#4A1B0C; --danger-text:#FAECE7;
     --success:#97C459; --success-bg:#173404; --success-text:#EAF3DE;
+    --surface-1:#2a2824; --border-stronger:#9a9789; --text-primary:#f0efe9;
   }
 }
 :root[data-theme="dark"]{
@@ -29,6 +31,7 @@
   --accent:#85B7EB; --accent-bg:#0C447C; --accent-text:#E6F1FB;
   --danger:#F0997B; --danger-bg:#4A1B0C; --danger-text:#FAECE7;
   --success:#97C459; --success-bg:#173404; --success-text:#EAF3DE;
+  --surface-1:#2a2824; --border-stronger:#9a9789; --text-primary:#f0efe9;
 }
 *{box-sizing:border-box;}
 body{background:var(--bg); color:var(--text); margin:0; padding:0;}
@@ -207,6 +210,11 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
         <span class="eq-wrap"><input type="checkbox" id="eq_means_est"><label for="eq_means_est">Equal across groups</label></span></div>
     </div>
 
+    <div class="row" id="latmeanRow" style="display:none;">
+      <label id="latmeansLabel">Latent means<span class="hint">Freely estimated in groups 2+ (group 1 fixed at 0)</span></label>
+      <div class="param-row"><input type="number" id="latmeans_est" min="0" value="0"></div>
+    </div>
+
     <div class="total-row">
       <span class="label">Total freely estimated (q)</span>
       <span class="value" id="qTotal">0</span>
@@ -238,16 +246,24 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
       <input type="text" id="rtName" placeholder="e.g., Configural invariance" style="flex:1; min-width:0; width:auto; text-align:left; padding:6px 8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); font-size:13.5px;">
       <button type="button" id="rtAdd" class="preset-btn" style="flex:none;">Add current model as row</button>
     </div>
+    <div class="row" style="border-bottom:none; padding-bottom:0; gap:10px; flex-wrap:wrap; justify-content:flex-start;">
+      <label for="rtXload" style="flex:none;">Memo: cross-loadings <span class="hint" style="display:inline;">(already counted in Loadings)</span></label>
+      <input type="number" id="rtXload" min="0" value="0" style="width:60px;">
+      <label for="rtFixed0" style="flex:none;">Memo: parameters fixed to 0</label>
+      <input type="number" id="rtFixed0" min="0" value="0" style="width:60px;">
+    </div>
+    <p class="hint" style="margin:4px 0 0;">The two memo boxes are recorded in the table for readers but never change df.</p>
     <div class="tablewrap" id="rtTableWrap" style="display:none; margin-top:14px; overflow-x:auto;">
       <table id="rtTable" style="width:100%; border-collapse:collapse; font-size:12px;"></table>
     </div>
     <div class="row" id="rtActions" style="display:none; border-bottom:none; padding-top:12px; gap:10px;">
       <button type="button" id="rtDownload" class="preset-btn">Download CSV</button>
+      <button type="button" id="rtCopy" class="preset-btn">Copy table</button>
       <button type="button" id="rtShowText" class="preset-btn">Show CSV text</button>
       <button type="button" id="rtClear" class="preset-btn">Clear table</button>
       <span class="hint" id="rtCount" style="flex:none;"></span>
     </div>
-    <p class="hint" id="rtDownloadHelp" style="margin:6px 0 0;">Try "Download CSV" first. If clicking it does nothing — common on some embedded websites that block file downloads — click "Show CSV text" instead, then select all the text in the box (Ctrl/Cmd+A) and copy it (Ctrl/Cmd+C) to paste into a spreadsheet or a new .csv file.</p>
+    <p class="hint" id="rtDownloadHelp" style="margin:6px 0 0;">Try "Download CSV" first. If clicking it does nothing — common on some embedded websites that block file downloads — use "Copy table" (it pastes straight into a spreadsheet, cell A1, already split into columns) or "Show CSV text" (select all the text in the box with Ctrl/Cmd+A, copy it with Ctrl/Cmd+C, and paste it into a spreadsheet or a new .csv file).</p>
     <div id="rtTextWrap" style="display:none; margin-top:12px;">
       <p class="hint" style="margin:0 0 6px;">Click inside the box below, select all (Ctrl/Cmd+A), and copy (Ctrl/Cmd+C). Open a blank spreadsheet and paste into cell A1 — that should split the text into columns and rows automatically. If it just pastes everything into that one cell instead, select column A, then use Data &rarr; Text to Columns &rarr; Delimited &rarr; Comma to split it. (Or paste into a plain text editor and save the file with a .csv extension.)</p>
       <textarea id="rtTextArea" readonly style="width:100%; min-height:120px; font-family:ui-monospace,Consolas,monospace; font-size:12px; padding:8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--bg); color:var(--text); resize:vertical;"></textarea>
@@ -256,7 +272,7 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
   </div>
 
   <footer>
-    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are modeled only once, using the highest level's indicator count. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
+    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are modeled only once, using the highest level's indicator count. In multi-group models with a mean structure, latent means (scalar and strict invariance) are freely estimated in every group except the first, which adds (k &minus; 1) &times; m parameters. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
   </footer>
 </div>
 
@@ -306,6 +322,18 @@ function levelName(i, total){
   return `Level ${i} — between`;
 }
 
+function topFactors(){
+  const levels = Math.max(1, Math.round(Number($('levels').value) || 1));
+  return Math.max(0, Math.round(Number($('numFactors' + (levels === 1 ? '' : '_' + levels)).value) || 0));
+}
+
+function autofillIntercepts(){
+  if (!$('means').checked) return;
+  const levels = Math.max(1, Math.round(Number($('levels').value) || 1));
+  const topP = Math.max(0, Math.round(Number($('p' + (levels === 1 ? '' : '_' + levels)).value) || 0));
+  if (!(Number($('means_est').value) > 0)) $('means_est').value = topP;
+}
+
 function applyPreset(name){
   const levels = Math.max(1, Math.round(Number($('levels').value) || 1));
   for (let n = 1; n <= levels; n++){
@@ -317,8 +345,9 @@ function applyPreset(name){
   }
   const meansEl = $('eq_means_est');
   if (meansEl) meansEl.checked = presets[name].includes('means_est');
-  if (name === 'scalar' || name === 'strict') $('means').checked = true;
-  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+  if (name === 'scalar' || name === 'strict'){ $('means').checked = true; autofillIntercepts(); }
+  $('latmeans_est').value = (name === 'scalar' || name === 'strict') ? topFactors() : 0;
+  document.querySelectorAll('.preset-btn[data-preset]').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
   calc();
 }
 
@@ -354,12 +383,12 @@ function calc(){
   for (let n = 1; n <= 3; n++){
     const suffix = n === 1 ? '' : '_' + n;
     const lbl = $('errvarLabel' + suffix);
-    if (lbl) lbl.innerHTML = isPath
-      ? 'Error variances<span class="hint">One per endogenous (dependent) variable — exogenous variances aren\'t model parameters here</span>'
-      : 'Error variances<span class="hint">Usually one per observed variable</span>';
+    if (lbl) lbl.innerHTML = 'Error variances<span class="hint">Usually one per observed variable</span>';
+    const evRow = $('errvarRow' + suffix);
+    if (evRow) evRow.style.display = isPath ? 'none' : 'flex';
   }
   $('modelTypeHint').textContent = isPath
-    ? 'Exogenous variable variances and covariances are treated as always-saturated and excluded from the knowns, so only covariances (not variances) count as data points.'
+    ? 'Variances are excluded from both the knowns and the unknowns (observed variances aren\'t data points, and error variances aren\'t counted as parameters), so only covariances/correlations are knowns and only paths, error covariances, etc. are unknowns.'
     : 'Includes latent factors — loadings, factor (co)variances, and observed errors all count.';
   $('levelsHint').textContent = multiLevel
     ? 'Each level has its own indicator count, factor count, and free parameters below — levels need not match in size or structure. Grand means are entered once, for the highest level only.'
@@ -376,7 +405,7 @@ function calc(){
   }
   const topP = levelP[levels - 1];
 
-  const activeCats = isPath ? categoryIds.filter(id => !['loadings','factvar','factcov'].includes(id)) : categoryIds;
+  const activeCats = isPath ? categoryIds.filter(id => !['loadings','factvar','factcov','errvar'].includes(id)) : categoryIds;
   let q = 0;
   const catTotals = {};
   categoryIds.forEach(id => { catTotals[id] = 0; });
@@ -396,6 +425,16 @@ function calc(){
     const heldEqual = multiGroup && $('eq_means_est').checked;
     meansTotal = heldEqual ? val : val * k;
     q += meansTotal;
+  }
+
+  let latTotal = 0;
+  const latActive = meansOn && multiGroup && !isPath;
+  $('latmeanRow').style.display = latActive ? 'flex' : 'none';
+  if (latActive){
+    const per = Math.max(0, Math.round(Number($('latmeans_est').value) || 0));
+    latTotal = per * (k - 1);
+    q += latTotal;
+    $('latmeansLabel').innerHTML = `Latent means<span class="hint">Per non-reference group — usually one per factor at the highest level. Freely estimated in ${k === 2 ? 'group 2' : 'groups 2–' + k} (group 1 fixed at 0): ${per} &times; ${k-1} = ${latTotal}</span>`;
   }
 
   let covKnowns = 0;
@@ -436,7 +475,7 @@ function calc(){
     isPath, k, levels, pList: levelP.slice(), meansOn,
     loadings: catTotals.loadings, factvar: catTotals.factvar, factcov: catTotals.factcov,
     errvar: catTotals.errvar, errcov: catTotals.errcov, paths: catTotals.paths, other: catTotals.other,
-    means: meansTotal, knowns, q, df
+    means: meansTotal, latmeans: latTotal, knowns, q, df
   };
 }
 
@@ -453,13 +492,15 @@ function renderDiagrams(ctx){
     const mLevel = Math.max(1, Math.round(Number($('numFactors' + suffix).value) || 1));
     const vals = {};
     categoryIds.forEach(id => { vals[id] = Math.max(0, Math.round(Number($(id + suffix).value) || 0)); });
-    if (ctx.isPath){ vals.loadings = 0; vals.factvar = 0; vals.factcov = 0; }
+    if (ctx.isPath){ vals.loadings = 0; vals.factvar = 0; vals.factcov = 0; vals.errvar = 0; }
 
     const eqFlags = {};
     categoryIds.forEach(id => { const el = $('eq_' + id + suffix); eqFlags[id] = !!(el && el.checked); });
 
     const isTop = (n === ctx.levels);
     const intercepts = (isTop && meansOn) ? { count: Math.max(0, Math.round(Number($('means_est').value) || 0)), equal: !!($('eq_means_est') && $('eq_means_est').checked) } : null;
+
+    const latPer = (isTop && meansOn && !ctx.isPath && multiGroup) ? Math.max(0, Math.round(Number($('latmeans_est').value) || 0)) : 0;
 
     const wrap = document.createElement('div');
     wrap.className = 'diagram-wrap';
@@ -482,7 +523,7 @@ function renderDiagrams(ctx){
         glbl.textContent = `Group ${g}`;
         col.appendChild(glbl);
         const host = document.createElement('div');
-        host.innerHTML = buildDiagramSVG(pLevel, mLevel, ctx.isPath, vals, { eqFlags, multiGroup, intercepts });
+        host.innerHTML = buildDiagramSVG(pLevel, mLevel, ctx.isPath, vals, { eqFlags, multiGroup, intercepts, latentMeans: g >= 2 ? latPer : 0 });
         col.appendChild(host);
         row.appendChild(col);
       }
@@ -504,13 +545,13 @@ function renderDiagrams(ctx){
     let legendHTML = ctx.isPath
       ? '<span><i class="legend-swatch" style="border-color:#378ADD;"></i>structural path</span>'
         + '<span><i class="legend-swatch" style="border-color:#7F77DD; border-top-style:dashed;"></i>error covariance</span>'
-        + '<span><i class="legend-swatch" style="border-color:#1D9E75;"></i>error variance</span>'
       : '<span><i class="legend-swatch" style="border-color:#378ADD;"></i>loading (free)</span>'
         + '<span><i class="legend-swatch" style="border-color:#8a8779; border-top-style:dashed;"></i>loading (fixed = 1)</span>'
         + '<span><i class="legend-swatch" style="border-color:#D85A30;"></i>structural path</span>'
         + '<span><i class="legend-swatch" style="border-color:#7F77DD;"></i>factor covariance</span>'
         + '<span><i class="legend-swatch" style="border-color:#1D9E75;"></i>error variance / covariance</span>';
     if (intercepts && intercepts.count > 0) legendHTML += '<span><i class="legend-swatch" style="border-color:#444441;"></i>intercept</span>';
+    if (latPer > 0) legendHTML += '<span><i class="legend-swatch" style="border-color:#444441;"></i>latent mean (groups 2+; fixed at 0 in group 1)</span>';
     if (multiGroup) legendHTML += '<span><i class="legend-swatch" style="border-color:#BA7517;"></i>held equal across groups (invariant)</span>';
     legend.innerHTML = legendHTML;
     wrap.appendChild(legend);
@@ -529,6 +570,7 @@ function buildDiagramSVG(p, m, isPath, vals, opts){
   const eqFlags = opts.eqFlags || {};
   const multiGroup = !!opts.multiGroup;
   const intercepts = opts.intercepts;
+  const latentMeans = opts.latentMeans || 0;
   const INV = '#BA7517';
   const col = (cat, base) => (multiGroup && eqFlags[cat]) ? INV : base;
 
@@ -618,6 +660,17 @@ function buildDiagramSVG(p, m, isPath, vals, opts){
     const x = indX(i);
     els.push(`<rect x="${x-22}" y="${botY-16}" width="44" height="32" rx="4" fill="var(--surface-1)" stroke="var(--border-stronger)" stroke-width="1.2"/>`);
     els.push(`<text x="${x}" y="${botY+4}" text-anchor="middle" font-size="12" fill="var(--text-primary)">X${i+1}</text>`);
+  }
+
+  if (latentMeans > 0){
+    const lc = 'var(--text-secondary)';
+    for (let i=0;i<Math.min(latentMeans, m);i++){
+      const tx = factX[i] - 50, ty = topY - 2;
+      els.push(`<path d="M${tx-9},${ty+8} L${tx+9},${ty+8} L${tx},${ty-8} Z" fill="var(--surface-1)" stroke="${lc}" stroke-width="1.3"/>`);
+      els.push(`<text x="${tx}" y="${ty+6}" text-anchor="middle" font-size="9" fill="${lc}">1</text>`);
+      els.push(`<line x1="${tx+10}" y1="${ty+2}" x2="${factX[i]-25}" y2="${topY}" stroke="${lc}" stroke-width="1.3" marker-end="url(#arrow)"/>`);
+    }
+    if (latentMeans > m) els.push(noteText(width, `+ ${latentMeans-m} more latent means`, 6));
   }
 
   const loadColor = col('loadings', '#378ADD');
@@ -730,11 +783,25 @@ const RT_COLS = [
   { key: 'errcov', label: 'Error cov.' },
   { key: 'paths', label: 'Paths' },
   { key: 'means', label: 'Intercepts' },
+  { key: 'latmeans', label: 'Latent means' },
   { key: 'other', label: 'Other' },
   { key: 'knowns', label: 'Knowns' },
   { key: 'q', label: 'Unknowns (q)' },
-  { key: 'df', label: 'df' }
+  { key: 'df', label: 'df' },
+  { key: 'ddf', label: 'Change in df vs. previous row' },
+  { key: 'calc', label: 'df calculation' },
+  { key: 'xload', label: 'Cross-loadings (memo)' },
+  { key: 'fixed0', label: 'Fixed to 0 (memo)' }
 ];
+
+function derivedRows(){
+  const parts = ['loadings','factvar','factcov','errvar','errcov','paths','latmeans','means','other'];
+  return reportRows.map((r, i) => {
+    const d = i > 0 ? r.df - reportRows[i-1].df : null;
+    const calc = r.knowns + parts.filter(k => r[k] > 0).map(k => '-' + r[k]).join('') + '=' + r.df;
+    return Object.assign({}, r, { ddf: d === null ? '' : (d > 0 ? '+' + d : String(d)), calc });
+  });
+}
 
 function addReportRow(){
   if (!lastSnapshot) return;
@@ -748,10 +815,12 @@ function addReportRow(){
     p: s.pList.join(s.pList.length > 1 ? ' + ' : ''),
     loadings: s.loadings, factvar: s.factvar, factcov: s.factcov,
     errvar: s.errvar, errcov: s.errcov, paths: s.paths,
-    means: s.means, other: s.other,
+    means: s.means, latmeans: s.latmeans, other: s.other,
+    xload: Math.max(0, Math.round(Number($('rtXload').value) || 0)),
+    fixed0: Math.max(0, Math.round(Number($('rtFixed0').value) || 0)),
     knowns: s.knowns, q: s.q, df: s.df
   });
-  nameInput.value = '';
+  nameInput.value = ''; $('rtXload').value = 0; $('rtFixed0').value = 0;
   renderReportTable();
 }
 
@@ -773,7 +842,7 @@ function renderReportTable(){
   wrap.style.display = 'block'; actions.style.display = 'flex'; empty.style.display = 'none';
   count.textContent = `${reportRows.length} row${reportRows.length === 1 ? '' : 's'}`;
   const thead = '<thead><tr>' + RT_COLS.map(c => `<th>${esc(c.label)}</th>`).join('') + '<th></th></tr></thead>';
-  const tbody = '<tbody>' + reportRows.map((r, i) => {
+  const tbody = '<tbody>' + derivedRows().map((r, i) => {
     const cells = RT_COLS.map(c => `<td${c.key === 'df' ? ' class="rt-df"' : ''}>${esc(String(r[c.key]))}</td>`).join('');
     return `<tr>${cells}<td class="rt-rm"><button type="button" data-idx="${i}" aria-label="Remove row">✕</button></td></tr>`;
   }).join('') + '</tbody>';
@@ -791,17 +860,41 @@ function toCSV(){
   const header = RT_COLS.map(c => c.label);
   const csvEsc = v => {
     const s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
   const lines = [header.map(csvEsc).join(',')];
-  reportRows.forEach(r => {
+  derivedRows().forEach(r => {
     lines.push(RT_COLS.map(c => csvEsc(r[c.key])).join(','));
   });
   return lines.join('\r\n');
 }
 
+function toTSV(){
+  const clean = v => String(v).replace(/[\t\r\n]+/g, ' ');
+  const lines = [RT_COLS.map(c => clean(c.label)).join('\t')];
+  derivedRows().forEach(r => lines.push(RT_COLS.map(c => clean(r[c.key])).join('\t')));
+  return lines.join('\r\n');
+}
+
+async function copyReportTable(){
+  const btn = $('rtCopy'), tsv = toTSV();
+  let ok = false;
+  try { if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(tsv); ok = true; } } catch (e) {}
+  if (!ok){
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = tsv; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (e2) {}
+  }
+  btn.textContent = ok ? 'Copied \u2713' : 'Copy blocked \u2014 use Show CSV text';
+  setTimeout(() => { btn.textContent = 'Copy table'; }, 2200);
+}
+
 async function downloadReportCSV(){
-  const csv = toCSV();
+  const csv = '\uFEFF' + toCSV();
   const btn = $('rtDownload');
   try {
     const downloads = (typeof claude !== 'undefined' && claude.use) ? await claude.use('downloads') : null;
@@ -846,12 +939,13 @@ function wireReportTable(){
   $('rtAdd').addEventListener('click', addReportRow);
   $('rtDownload').addEventListener('click', downloadReportCSV);
   $('rtShowText').addEventListener('click', toggleCSVText);
+  $('rtCopy').addEventListener('click', copyReportTable);
   $('rtClear').addEventListener('click', () => { reportRows = []; renderReportTable(); });
   $('rtName').addEventListener('keydown', e => { if (e.key === 'Enter') addReportRow(); });
 }
 
 function wireInputs(){
-  const base = ['k','levels','means','means_est','modelType'];
+  const base = ['k','levels','means','means_est','latmeans_est','modelType'];
   const perLevel = [];
   for (let n = 1; n <= 3; n++){
     const suffix = n === 1 ? '' : '_' + n;
@@ -864,11 +958,12 @@ function wireInputs(){
     el.addEventListener('input', calc);
     el.addEventListener('change', calc);
   });
-  document.querySelectorAll('.preset-btn').forEach(btn => {
+  document.querySelectorAll('.preset-btn[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
   });
 }
 wireInputs();
+$('means').addEventListener('change', () => { autofillIntercepts(); calc(); });
 wireReportTable();
 calc();
 renderReportTable();
