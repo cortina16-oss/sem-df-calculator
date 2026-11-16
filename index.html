@@ -40,6 +40,10 @@ h1{font-size:20px; font-weight:600; margin:0 0 4px;}
 .sub{color:var(--text-secondary); font-size:14px; margin:0 0 12px; line-height:1.5;}
 .cite{color:var(--text-secondary); font-size:13px; margin:0 0 24px; line-height:1.5; padding:10px 14px; background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius);}
 .cite .cite-ref{display:block; margin-top:4px; color:var(--text);}
+.howto ol{margin:0; padding-left:20px; font-size:13px; line-height:1.55; color:var(--text-secondary);}
+.howto li{margin-bottom:8px;}
+.howto li:last-child{margin-bottom:0;}
+.howto b{color:var(--text); font-weight:600;}
 .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px;}
 .card h2{font-size:14px; font-weight:600; margin:0 0 12px; display:flex; align-items:center; gap:8px;}
 .badge{font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; background:var(--accent-bg); color:var(--accent-text);}
@@ -105,8 +109,21 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
 <body>
 <div class="wrap">
   <h1>SEM χ² df calculator (aka Jen Jr. ... don't ask, just don't)</h1>
-  <p class="sub">Degrees of freedom for the model chi-square (χ²) fit statistic in structural equation modeling: the number of non-redundant data points minus the number of freely estimated parameters.</p>
+  <p class="sub">Degrees of freedom for the model chi-square (χ²) fit statistic in structural equation modeling: the number of non-redundant data points minus the number of freely estimated parameters. Various journals including JAP require that you use a tool like this to double check df before submitting a paper that uses SEM. It is also useful for reviewers who want to confirm that the model tested is actually the model described in the paper.</p>
   <p class="cite">If you publish results produced with this calculator or use it in teaching, please cite it as:<span class="cite-ref">Cortina, J. M. (2026). <i>SEM χ² df Calculator</i> (Version 1.0) [Web application]. https://josecortina.com/df-calculator</span></p>
+
+  <div class="card howto">
+    <h2>What to enter</h2>
+    <ol>
+      <li><b>Model type.</b> Choose a latent variable model (CFA or SEM) or path analysis (observed variables only). In path analysis, variances are counted neither as knowns nor as unknowns, so enter only paths, error covariances, and any other estimated parameters.</li>
+      <li><b>Model size.</b> Enter the number of groups (k = 1 unless you are fitting a multi-group or invariance model) and the number of levels (1 unless the model is multilevel). Switch on &ldquo;Model a mean structure&rdquo; only if your model includes means or intercepts.</li>
+      <li><b>Indicators and factors.</b> For each level, enter the number of observed variables (p) and, for latent variable models, the number of latent factors (m). With a mean structure, enter the number of estimated intercepts (usually one per indicator).</li>
+      <li><b>Freely estimated parameters.</b> Count only parameters your software actually estimates, not ones fixed to a value such as a reference-indicator loading fixed to 1. A set of parameters constrained equal to one another counts once. With reference indicators, the factor variances are estimated; if you instead fix each factor variance to 1, count every loading and no factor variances. Check your software&rsquo;s output for parameters it estimates by default, such as error covariances.</li>
+      <li><b>Multiple groups.</b> Enter each parameter&rsquo;s count for one group. The calculator multiplies it by k unless &ldquo;Equal across groups&rdquo; is checked. The invariance buttons (configural, metric, scalar, strict) set those boxes for you, and the scalar and strict buttons also turn on the mean structure and fill in the intercepts and latent means.</li>
+      <li><b>Multilevel models.</b> For each level, enter the number of observed variables that have variance at that level. If every variable is measured at level 1 and varies between clusters too, that number (m) is the same at both levels, and the knowns are m(m+1)/2 at each level plus m means. If some variables exist at only one level, count each variable&rsquo;s mean once (the &ldquo;Observed means counted as knowns&rdquo; box lets you set that number) and check your software&rsquo;s sample statistics output. Estimated intercepts are entered once, for the highest level.</li>
+      <li><b>Check the result.</b> The df shown should match the df in your software output. If it does not, the model that was tested differs from the model you described. The reporting table at the bottom saves one row per model for a paper or appendix.</li>
+    </ol>
+  </div>
 
   <div class="card">
     <h2>Model type</h2>
@@ -213,6 +230,11 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
         <span class="eq-wrap"><input type="checkbox" id="eq_means_est"><label for="eq_means_est">Equal across groups</label></span></div>
     </div>
 
+    <div class="row" id="meansKnownRow" style="display:none;">
+      <label id="meansKnownLabel">Observed means counted as knowns<span class="hint">Leave blank to use the highest level's indicator count</span></label>
+      <div class="param-row"><input type="number" id="means_known" min="0" placeholder="auto"></div>
+    </div>
+
     <div class="row" id="latmeanRow" style="display:none;">
       <label id="latmeansLabel">Latent means<span class="hint">Freely estimated in groups 2+ (group 1 fixed at 0)</span></label>
       <div class="param-row"><input type="number" id="latmeans_est" min="0" value="0"></div>
@@ -275,7 +297,7 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
   </div>
 
   <footer>
-    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are modeled only once, using the highest level's indicator count. In multi-group models with a mean structure, latent means (scalar and strict invariance) are freely estimated in every group except the first, which adds (k &minus; 1) &times; m parameters. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
+    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are counted only once, by default using the highest level's indicator count (adjustable in the &ldquo;Observed means counted as knowns&rdquo; box). In multi-group models with a mean structure, latent means (scalar and strict invariance) are freely estimated in every group except the first, which adds (k &minus; 1) &times; m parameters. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
   </footer>
 </div>
 
@@ -364,7 +386,7 @@ function calc(){
 
   $('meanRow').style.display = meansOn ? 'flex' : 'none';
   $('meansLabel').innerHTML = multiLevel
-    ? `Intercepts / means<span class="hint">Grand means — modeled once, using the highest level's indicator count (level ${levels})</span>`
+    ? `Intercepts / means<span class="hint">Grand means — estimated once, not at each level. The matching knowns are set in the next row</span>`
     : 'Intercepts / means<span class="hint">Only counted if mean structure is on</span>';
   $('invarianceCard').style.display = multiGroup ? 'block' : 'none';
 
@@ -442,7 +464,12 @@ function calc(){
 
   let covKnowns = 0;
   levelP.forEach(pl => { covKnowns += isPath ? (pl*(pl-1)/2) : (pl*(pl+1)/2); });
-  const perGroupKnowns = meansOn ? (covKnowns + topP) : covKnowns;
+  const mkRaw = $('means_known').value;
+  const meansKnown = (multiLevel && mkRaw !== '') ? Math.max(0, Math.round(Number(mkRaw) || 0)) : topP;
+  $('meansKnownRow').style.display = (meansOn && multiLevel) ? 'flex' : 'none';
+  $('means_known').placeholder = 'auto (' + topP + ')';
+  $('meansKnownLabel').innerHTML = `Observed means counted as knowns<span class="hint">Leave blank to use the highest level's indicator count (${topP}). Enter the number of distinct observed variables that have a mean if it differs. Currently counting ${meansKnown}.</span>`;
+  const perGroupKnowns = meansOn ? (covKnowns + meansKnown) : covKnowns;
   const knowns = perGroupKnowns * k;
   const df = knowns - q;
 
@@ -455,7 +482,7 @@ function calc(){
 
   const baseFn = pl => isPath ? `${pl}(${pl}−1)/2` : `${pl}(${pl}+1)/2`;
   const covNum = levelP.map(baseFn).join(' + ');
-  const perGroupNum = meansOn ? `[${covNum} + ${topP}]` : (multiLevel ? `[${covNum}]` : covNum);
+  const perGroupNum = meansOn ? `[${covNum} + ${meansKnown}]` : (multiLevel ? `[${covNum}]` : covNum);
   $('dfFormula').textContent = multiGroup
     ? `df = k·${perGroupNum} − q = ${k}·(${perGroupKnowns}) − ${q}`
     : `df = ${perGroupNum} − q = ${perGroupKnowns} − ${q}`;
@@ -948,7 +975,7 @@ function wireReportTable(){
 }
 
 function wireInputs(){
-  const base = ['k','levels','means','means_est','latmeans_est','modelType'];
+  const base = ['k','levels','means','means_est','means_known','latmeans_est','modelType'];
   const perLevel = [];
   for (let n = 1; n <= 3; n++){
     const suffix = n === 1 ? '' : '_' + n;
