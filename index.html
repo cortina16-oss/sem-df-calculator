@@ -120,7 +120,7 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
       <li><b>Indicators and factors.</b> For each level, enter the number of observed variables (p) and, for latent variable models, the number of latent factors (m). With a mean structure, enter the number of estimated intercepts (usually one per indicator).</li>
       <li><b>Freely estimated parameters.</b> Count only parameters your software actually estimates, not ones fixed to a value such as a reference-indicator loading fixed to 1. A set of parameters constrained equal to one another counts once. With reference indicators, the factor variances are estimated; if you instead fix each factor variance to 1, count every loading and no factor variances. Check your software&rsquo;s output for parameters it estimates by default, such as error covariances.</li>
       <li><b>Multiple groups.</b> Enter each parameter&rsquo;s count for one group. The calculator multiplies it by k unless &ldquo;Equal across groups&rdquo; is checked. The invariance buttons (configural, metric, scalar, strict) set those boxes for you, and the scalar and strict buttons also turn on the mean structure and fill in the intercepts and latent means.</li>
-      <li><b>Multilevel models.</b> For each level, enter the number of observed variables that have variance at that level. If every variable is measured at level 1 and varies between clusters too, that number (m) is the same at both levels, and the knowns are m(m+1)/2 at each level plus m means. If some variables exist at only one level, count each variable&rsquo;s mean once (the &ldquo;Observed means counted as knowns&rdquo; box lets you set that number) and check your software&rsquo;s sample statistics output. Estimated intercepts are entered once, for the highest level.</li>
+      <li><b>Multilevel models.</b> Enter the same number of observed variables (m) at every level. Every observed variable contributes to the within-level and the between-level covariance matrix, even one that varies at only one level: its variance at the other level is a zero you fix, and that zero still counts as information. The knowns are then m(m+1)/2 at each level plus m means, counted once (a variable has one mean, which cannot be split across levels). Factor counts and estimated parameters can differ by level, and estimated intercepts are entered once, for the highest level. Some programs may count variables declared within-only or between-only differently, so check the df against your software&rsquo;s output.</li>
       <li><b>Check the result.</b> The df shown should match the df in your software output. If it does not, the model that was tested differs from the model you described. The reporting table at the bottom saves one row per model for a paper or appendix.</li>
     </ol>
   </div>
@@ -297,7 +297,7 @@ footer{margin-top:20px; font-size:11.5px; color:var(--text-muted); line-height:1
   </div>
 
   <footer>
-    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), each level can have its own indicator count and factor count, and contributes its own p&#8322;(p&#8322;+1)/2 covariance knowns; grand means are counted only once, by default using the highest level's indicator count (adjustable in the &ldquo;Observed means counted as knowns&rdquo; box). In multi-group models with a mean structure, latent means (scalar and strict invariance) are freely estimated in every group except the first, which adds (k &minus; 1) &times; m parameters. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
+    df = p(p+1)/2 &minus; q for covariance structure models, or p(p+1)/2 + p &minus; q when a mean structure is modeled, where p is the number of observed variables and q is the number of freely estimated parameters. With k groups, knowns scale to k &times; that quantity (each group contributes its own covariance matrix, and mean vector if means are modeled), while q only multiplies by k for parameters left free per group — parameters checked "equal across groups" count once. With L levels (multilevel/within-between models), every observed variable contributes to the covariance matrix at every level, even one that varies at only one level, so each level contributes p(p+1)/2 covariance knowns with the same p (the indicator box at higher levels follows level 1 unless you change it; factor counts can differ by level); grand means are counted only once, by default using the highest level's indicator count (adjustable in the &ldquo;Observed means counted as knowns&rdquo; box). In multi-group models with a mean structure, latent means (scalar and strict invariance) are freely estimated in every group except the first, which adds (k &minus; 1) &times; m parameters. df &gt; 0 means the model is overidentified (the usual, testable case); df = 0 is just-identified (saturated, perfect fit by construction); df &lt; 0 means the model is underidentified and cannot be fit as specified.
   </footer>
 </div>
 
@@ -416,7 +416,7 @@ function calc(){
     ? 'Variances are excluded from both the knowns and the unknowns (observed variances aren\'t data points, and error variances aren\'t counted as parameters), so only covariances/correlations are knowns and only paths, error covariances, etc. are unknowns.'
     : 'Includes latent factors — loadings, factor (co)variances, and observed errors all count.';
   $('levelsHint').textContent = multiLevel
-    ? 'Each level has its own indicator count, factor count, and free parameters below — levels need not match in size or structure. Grand means are entered once, for the highest level only.'
+    ? 'Every observed variable contributes to the covariance matrix at every level, even one that varies at only one level (its variance at the other level is fixed to 0 and still counts as information), so the indicator count normally matches across levels. Factor counts and free parameters can differ by level. Grand means are entered once, for the highest level only.'
     : '';
 
   document.querySelectorAll('.eq-wrap').forEach(el => {
@@ -992,6 +992,14 @@ function wireInputs(){
     btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
   });
 }
+function syncLevelIndicators(){
+  [2,3].forEach(n => {
+    const el = $('p_' + n);
+    if (el && !el.dataset.manual) el.value = $('p').value;
+  });
+}
+[2,3].forEach(n => { const el = $('p_' + n); if (el) el.addEventListener('input', () => { el.dataset.manual = '1'; }); });
+$('p').addEventListener('input', () => { syncLevelIndicators(); calc(); });
 wireInputs();
 $('means').addEventListener('change', () => { autofillIntercepts(); calc(); });
 wireReportTable();
